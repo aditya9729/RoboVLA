@@ -20,10 +20,10 @@ class VLAPolicy(nn.Module):
         proprio:  (B,P) raw proprioception vector
     
     Training:
-        loss = policy(images, text_ods, proprio, action_chunks)
+        loss = policy(images, text_ids, proprio, action_chunks)
 
     Inference:
-        actions = policy.sample(imgaes, text_ids, proprio) # (B,H,A)
+        actions = policy.sample(images, text_ids, proprio) # (B,H,A)
     """
     def __init__(self, config: VLAPolicyConfig) -> None:
         super().__init__()

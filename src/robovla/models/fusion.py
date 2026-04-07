@@ -35,7 +35,14 @@ class FusionTransformer(nn.Module):
             norm_first = True,
         )
 
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers = config.num_layers)
+        # enable_nested_tensor=False silences a harmless PyTorch warning
+        # when combined with norm_first=True; the nested tensor fast path
+        # is incompatible with pre-LN layers.
+        self.encoder = nn.TransformerEncoder(
+            encoder_layer,
+            num_layers=config.num_layers,
+            enable_nested_tensor=False,
+        )
 
     def forward(self,vision_tokens: torch.Tensor, text_tokens: torch.Tensor, proprio_tokens: torch.Tensor) -> torch.Tensor:
         """Fuse the three token streams via concat + self.attention.

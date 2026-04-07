@@ -13,7 +13,7 @@ Conventions
 """
 
 from __future__ import annotations
-
+from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -126,7 +126,7 @@ class SyntheticDataConfig(StrictBase):
 # For Training loop 
 class TrainingConfig(StrictBase):
     """Toy training loop configuration."""
-    
+
     batch_size: int = Field(default=8, description="Mini-batch size.")
     num_steps: int = Field(default=50, description="Total optimizer steps to run.")
     learning_rate: float = Field(default=3e-4, description="AdamW learning rate.")
@@ -135,3 +135,8 @@ class TrainingConfig(StrictBase):
     log_every: int = Field(default=5, description="Steps between log prints.")
     seed: int = Field(default=0, description="Global RNG seed.")
     device: str = Field(default="cpu", description="Torch device string ('cpu' / 'cuda' / 'mps').")
+
+    artifacts_dir: Path = Field(default=Path("artifacts"), description="Checkpoint output directory.")                                                            
+    logs_dir: Path = Field(default=Path("logs"), description="Log file directory.")  
+    checkpoint_every: int = Field(default=25, description="Steps between checkpoint saves.")                                                                         
+    run_name: str = Field(default="run", description="Used as filename prefix for logs and ckpts.") 

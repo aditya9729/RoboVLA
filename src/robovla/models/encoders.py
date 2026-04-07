@@ -26,7 +26,13 @@ class VisionEncoder(nn.Module):
         self.config = config
 
         #Vision transformer + torchvision transforms - resize, center crop and normalize
-        model, _, self.preprocess = open_clip.create_model_and_transforms(self.config.model_name,pretrained=self.config.pretrained)
+        # force_quick_gelu=True matches the original OpenAI CLIP weights and
+        # silences the QuickGELU mismatch warning from open_clip.
+        model, _, self.preprocess = open_clip.create_model_and_transforms(
+            self.config.model_name,
+            pretrained=self.config.pretrained,
+            force_quick_gelu=True,
+        )
         self.visual = model.visual
         del model # Garbage collect
         self.visual.output_tokens = True # gives tokens as well - Tuple(pooled, tokens)
@@ -61,8 +67,10 @@ class TextEncoder(nn.Module):
         super().__init__()
         self.config = config
 
-        model, _, _ = open_clip.create_model_and_transforms(                     
-              config.model_name, pretrained=config.pretrained,
+        model, _, _ = open_clip.create_model_and_transforms(
+            config.model_name,
+            pretrained=config.pretrained,
+            force_quick_gelu=True,
         )
 
         # Get components
@@ -109,15 +117,13 @@ class TextEncoder(nn.Module):
             (B, context_length, embed_dim) per-token embeddings.
         """
 
-        x = self.token_embedding(token_ids) #(B,L,width)
-        x = x + self.positional_embedding[:x.shape[1]]
-        x = x.permute(1,0,2) #(L, B, width)
-
-        x = self.transformer(x, attn_mask = self.attn_mask)  # causal self-attention
-
-        x = x.permute(1,0,2) # (B, L, width)
-        x = self.ln_final(x) # (B, L, width)
-        return self.proj(x) # (B, L, embed_dim)
+        x = self.token_embedding(token_ids)                         # (B, L, width)
+        x = x + self.positional_embedding[: x.shape[1]]
+        # open_clip (>= 2.20) uses batch_first=True in the text Transformer,
+        # so we feed (B, L, D) directly with no permute.
+        x = self.transformer(x, attn_mask=self.attn_mask)            # (B, L, width)
+        x = self.ln_final(x)                                         # (B, L, width)
+        return self.proj(x)                                          # (B, L, embed_dim)
 
 
 class ProprioEncoder(nn.Module):

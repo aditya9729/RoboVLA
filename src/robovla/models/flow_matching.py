@@ -38,7 +38,7 @@ class FlowMatchingDenoiser(nn.Module):
         self.action_pos_embed = nn.Parameter(torch.zeros(1, action_horizon, embed_dim))
         nn.init.trunc_normal_(self.action_pos_embed, std=0.02)
         self.time_mlp = nn.Sequential(
-            nn.Linear(config.time_embed_dim, embed_dim),
+            nn.Linear(embed_dim, embed_dim),
             nn.SiLU(),
             nn.Linear(embed_dim,embed_dim)
         )
