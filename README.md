@@ -88,7 +88,7 @@ RoboVLA/
 ```bash
 uv venv .venv
 source .venv/bin/activate
-uv pip install -e ".
+uv pip install -e ".[dev]"
 ```
 
 First run of CLIP downloads ~~150 MB of weights into `~~/.cache/clip`.
@@ -182,16 +182,34 @@ A rough checklist for turning this skeleton into a trainable real-data policy:
    security surface for deployed policies.
 8. **Serving.** `InferenceRunner.act()` is already the single-robot API.
   For deployment, wrap it in a small FastAPI or ROS 2 node that accepts
-   `(image, instruction, proprio)` and returns an action chunk.
+   `(image, instruction, proprio)` and returns an action chunk OR for more optimized runs - build a custom IR via ONNX format and use torchserve or use vllm.
 
 ---
 
 ## What was intentionally left out
 
-- **Training to convergence** on real data (outside the 4–6 h scope).
+- **Training to convergence** on real data.
 - **Validation / early stopping** (no held-out data in a synthetic setting).
 - **Mixed precision / gradient accumulation** (not needed for a toy run).
-- **Hyperparameter search** (configs are sensible defaults, not optimized).
+- **Hyperparameter search** (configs are defaults, not optimized).
+
+---
+
+## What I'd add next
+
+- **Share one CLIP instance** between `VisionEncoder` and `TextEncoder` — currently loaded twice.
+- **Multi-camera + history** — fold camera / time indices into the batch dim; fusion handles variable-length sequences natively.
+- **Action + proprio normalization** computed once over the training set and stored in the checkpoint.
+- **Key-padding masks** from the CLIP tokenizer so fusion doesn't attend over text padding.
+- **AdaLN time conditioning** in the flow matching denoiser (real DiT pattern) instead of additive time embeddings.
+- **Logit-normal FM time sampling** (SD3 trick) — one-line change, measurable gains.
+- **BC → Offline RL → On-robot RL** (pi0 → pi*0 recipe). Start with advantage-weighted BC; it reuses the FM loss unchanged. Full on-robot RL only after BC+offline is solid.
+- **Uncertainty-aware ensemble heads** to detect out-of-distribution states and trigger a safety fallback.
+- **MPC safety filter** on top of sampled action chunks (reachability + collision check), with a stabilizing low-level fallback.
+- **Hierarchical composition** — a high-level VLM/LLM emits subgoals, this policy executes them (pi0.5 pattern).
+- **Test-time LoRA adaptation** for few-shot deployment to new robots / environments.
+- **ONNX / TorchScript export** of the action head (freeze CLIP, precompute embeddings) for real-time control; TensorRT on-robot.
+- **Determinism + shadow-mode deployment** for reproducible evals and zero-risk online logging alongside a teleoperator.
 
 ---
 
